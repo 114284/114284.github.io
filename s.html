@@ -1,110 +1,180 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-<meta charset="UTF-8" />
-<title>記憶翻牌遊戲</title>
-<style>
-body { font-family: Arial, sans-serif; background:#f5f5f5; text-align:center; }
-h1 { margin-top:20px; }
-#controls { margin: 10px; }
-.board {
-display: grid;
-grid-template-columns: repeat(4, 100px);
-grid-gap: 10px;
-justify-content: center;
-margin: 20px auto;
-}
-.card {
-width: 100px;
-height: 120px;
-background: #444;
-color: transparent;
-font-size: 40px;
-display: flex;
-align-items: center;
-justify-content: center;
-cursor: pointer;
-border-radius: 8px;
-user-select: none;
-}
-.card.open {
-background: #fff;
-color: #000;
-cursor: default;
-}
-.card.taken {
-visibility: hidden;
-}
-#status, #score { margin-top:10px; font-size:18px; }
-</style>
+  <meta charset="UTF-8" />
+  <title>記憶翻牌遊戲</title>
+  <style>
+    body { font-family: Arial, sans-serif; background:#f5f5f5; text-align:center; }
+    h1 { margin-top:20px; }
+    #controls { margin: 10px; }
+    .board {
+      display: grid;
+      grid-template-columns: repeat(4, 100px);
+      grid-gap: 10px;
+      justify-content: center;
+      margin: 20px auto;
+    }
+    .card {
+      width: 100px;
+      height: 120px;
+      background: #444;
+      color: transparent;
+      font-size: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border-radius: 8px;
+      user-select: none;
+    }
+    .card.open {
+      background: #fff;
+      color: #000;
+      cursor: default;
+    }
+    .card.taken {
+      visibility: hidden;
+    }
+    #status, #score { margin-top:10px; font-size:18px; }
+  </style>
 </head>
 <body>
-<h1>記憶翻牌遊戲</h1>
-<div id="controls">
-<button onclick="startGame('single')">單人模式</button>
-<button onclick="startGame('double')">雙人模式</button>
-</div>
+  <h1>記憶翻牌遊戲</h1>
+  <div id="controls">
+    <button onclick="startGame('single')">單人模式</button>
+    <button onclick="startGame('double')">雙人模式</button>
+  </div>
 
+  <div id="status">請選擇模式</div>
+  <div id="score"></div>
+  <div class="board" id="board"></div>
 
-<div id="status">請選擇模式</div>
-<div id="score"></div>
-<div class="board" id="board"></div>
+  <script>
+    const animals = ['🐶','🐱','🐼','🦊','🐸','🐵','🦁','🐷'];
+    let cards = [];
+    let opened = [];
+    let currentPlayer = 1;
+    let scores = {1:0, 2:0};
+    let playerNames = {1:'玩家', 2:'玩家2'};
+    let mode = 'single';
+    let lock = false;
 
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
 
-<script>
-const animals = ['🐶','🐱','🐼','🦊','🐸','🐵','🦁','🐷'];
-let cards = [];
-let opened = [];
-let currentPlayer = 1;
-let scores = {1:0, 2:0};
-let mode = 'single';
-let lock = false;
+    function startGame(selectedMode) {
+      if (selectedMode === 'single') {
+        const name1 = prompt('請輸入玩家名稱：', '玩家');
+        playerNames[1] = name1 && name1.trim() !== '' ? name1 : '玩家';
+        playerNames[2] = '電腦';
+      } else {
+        const name1 = prompt('請輸入玩家1名稱：', '玩家1');
+        const name2 = prompt('請輸入玩家2名稱：', '玩家2');
+        playerNames[1] = name1 && name1.trim() !== '' ? name1 : '玩家1';
+        playerNames[2] = name2 && name2.trim() !== '' ? name2 : '玩家2';
+      }
 
+      mode = selectedMode;
+      currentPlayer = 1;
+      scores = {1:0, 2:0};
+      opened = [];
+      lock = false;
 
-function shuffle(array) {
-for (let i = array.length - 1; i > 0; i--) {
-const j = Math.floor(Math.random() * (i + 1));
-[array[i], array[j]] = [array[j], array[i]];
-}
-return array;
-}
+      cards = shuffle([...animals, ...animals]);
+      const board = document.getElementById('board');
+      board.innerHTML = '';
 
+      cards.forEach((animal, index) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.dataset.animal = animal;
+        card.dataset.index = index;
+        card.innerText = animal;
+        card.onclick = () => flip(card);
+        board.appendChild(card);
+      });
 
-function startGame(selectedMode) {
-mode = selectedMode;
-currentPlayer = 1;
-scores = {1:0, 2:0};
-opened = [];
-lock = false;
+      updateStatus();
+      updateScore();
+    }
 
+    function flip(card) {
+      if (lock || card.classList.contains('open') || card.classList.contains('taken')) return;
 
-cards = shuffle([...animals, ...animals]);
-const board = document.getElementById('board');
-board.innerHTML = '';
+      card.classList.add('open');
+      opened.push(card);
 
+      if (opened.length === 2) {
+        lock = true;
+        setTimeout(checkMatch, 800);
+      }
+    }
 
-cards.forEach((animal, index) => {
-const card = document.createElement('div');
-card.className = 'card';
-card.dataset.animal = animal;
-card.dataset.index = index;
-card.innerText = animal;
-card.onclick = () => flip(card);
-board.appendChild(card);
-});
+    function checkMatch() {
+      const [c1, c2] = opened;
+      if (c1.dataset.animal === c2.dataset.animal) {
+        c1.classList.add('taken');
+        c2.classList.add('taken');
+        scores[currentPlayer]++;
+        opened = [];
+        lock = false;
+        updateScore();
+        checkGameOver();
+      } else {
+        c1.classList.remove('open');
+        c2.classList.remove('open');
+        opened = [];
+        switchPlayer();
+      }
+    }
 
+    function switchPlayer() {
+      currentPlayer = currentPlayer === 1 ? 2 : 1;
+      updateStatus();
+      lock = false;
 
-updateStatus();
-updateScore();
-}
+      if (mode === 'single' && currentPlayer === 2) {
+        setTimeout(computerTurn, 800);
+      }
+    }
 
+    function computerTurn() {
+      const available = [...document.querySelectorAll('.card:not(.open):not(.taken)')];
+      if (available.length < 2) return;
 
-function flip(card) {
-if (lock || card.classList.contains('open') || card.classList.contains('taken')) return;
+      const c1 = available[Math.floor(Math.random()*available.length)];
+      flip(c1);
+      setTimeout(() => {
+        const remaining = available.filter(c => c !== c1);
+        const c2 = remaining[Math.floor(Math.random()*remaining.length)];
+        flip(c2);
+      }, 600);
+    }
 
+    function updateStatus() {
+      const playerName = playerNames[currentPlayer];
+      document.getElementById('status').innerText = `目前回合：${playerName}`;
+    }
 
-card.classList.add('open');
-opened.push(card);
+    function updateScore() {
+      document.getElementById('score').innerText =
+        `${playerNames[1]}：${scores[1]} 對 ｜ ${playerNames[2]}：${scores[2]} 對`;
+    }
 
-
+    function checkGameOver() {
+      const remaining = document.querySelectorAll('.card:not(.taken)');
+      if (remaining.length === 0) {
+        let result = '平手！';
+        if (scores[1] > scores[2]) result = playerNames[1] + ' 勝利！';
+        else if (scores[2] > scores[1]) result = (mode==='single')?'電腦 勝利！':'玩家2 勝利！';
+        document.getElementById('status').innerText = result;
+      }
+    }
+  </script>
+</body>
 </html>
