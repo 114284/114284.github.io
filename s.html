@@ -67,7 +67,7 @@
       return array;
     }
 
-    function startGame(selectedMode) {
+    window.startGame = function startGame(selectedMode) {
       if (selectedMode === 'single') {
         const name1 = prompt('請輸入玩家名稱：', '玩家');
         playerNames[1] = name1 && name1.trim() !== '' ? name1 : '玩家';
