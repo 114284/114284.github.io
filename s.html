@@ -144,16 +144,44 @@
     }
 
     function computerTurn() {
+      if (lock) return;
       const available = [...document.querySelectorAll('.card:not(.open):not(.taken)')];
-      if (available.length < 2) return;
+      if (available.length < 2) {
+        switchPlayer();
+        return;
+      }
 
-      const c1 = available[Math.floor(Math.random()*available.length)];
-      flip(c1);
+      lock = true;
+      const c1 = available[Math.floor(Math.random() * available.length)];
+      c1.classList.add('open');
+      opened = [c1];
+
       setTimeout(() => {
         const remaining = available.filter(c => c !== c1);
-        const c2 = remaining[Math.floor(Math.random()*remaining.length)];
-        flip(c2);
+        const c2 = remaining[Math.floor(Math.random() * remaining.length)];
+        c2.classList.add('open');
+        opened.push(c2);
+
+        setTimeout(() => {
+          if (c1.dataset.animal === c2.dataset.animal) {
+            c1.classList.add('taken');
+            c2.classList.add('taken');
+            scores[2]++;
+            opened = [];
+            updateScore();
+            checkGameOver();
+            lock = false;
+            setTimeout(computerTurn, 800); // 繼續抽
+          } else {
+            c1.classList.remove('open');
+            c2.classList.remove('open');
+            opened = [];
+            lock = false;
+            switchPlayer(); // 換玩家
+          }
+        }, 800);
       }, 600);
+    }, 600);
     }
 
     function updateStatus() {
@@ -171,7 +199,7 @@
       if (remaining.length === 0) {
         let result = '平手！';
         if (scores[1] > scores[2]) result = playerNames[1] + ' 勝利！';
-        else if (scores[2] > scores[1]) result = (mode==='single')?'電腦 勝利！':'玩家2 勝利！';
+        else if (scores[2] > scores[1]) result = playerNames[2] + ' 勝利！';
         document.getElementById('status').innerText = result;
       }
     }
