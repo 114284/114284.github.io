@@ -196,8 +196,10 @@
       }
     }
 
+    document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('singleBtn').addEventListener('click', () => startGame('single'));
-    document.getElementById('doubleBtn').addEventListener('click', () => startGame('double'));
-  </script>
+        document.getElementById('doubleBtn').addEventListener('click', () => startGame('double')    );
+  });
+</script>
 </body>
 </html>
